@@ -1,0 +1,560 @@
+{
+	"info": {
+		"_postman_id": "cd7d2012-d79f-45b2-8b61-003c2275dd86",
+		"name": "BlipSeguros - Clientes & Carros",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "44725343",
+		"_collection_link": "https://erik-3593559.postman.co/workspace/LGPD~8776de8f-0318-465e-a3b5-18017967281a/collection/44725343-cd7d2012-d79f-45b2-8b61-003c2275dd86?action=share&source=collection_link&creator=44725343"
+	},
+	"item": [
+		{
+			"name": "Clientes",
+			"item": [
+				{
+					"name": "Criar Cliente (POST)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Gera CPF de 11 dígitos e email único",
+									"const ts = Date.now();",
+									"const cpf = '9' + Math.floor(1000000000 + Math.random()*9000000000).toString();",
+									"pm.collectionVariables.set('cpf_random', cpf);",
+									"pm.collectionVariables.set('email_random', `erik_${ts}@teste.com`);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201 Created', function () {",
+									"  pm.response.to.have.status(201);",
+									"});",
+									"",
+									"const json = pm.response.json();",
+									"pm.test('Resposta contém id', function () {",
+									"  pm.expect(json).to.have.property('id');",
+									"});",
+									"pm.collectionVariables.set('clienteId', json.id);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"cpf\": \"{{cpf_random}}\",\n  \"firstname\": \"Erik Teixeira lisboa\",\n  \"email\": \"{{email_random}}\"\n}"
+						},
+						"url": {
+							"raw": "https://8616e0387b58.ngrok-free.app/api/clientes",
+							"protocol": "https",
+							"host": [
+								"8616e0387b58",
+								"ngrok-free",
+								"app"
+							],
+							"path": [
+								"api",
+								"clientes"
+							]
+						},
+						"description": "Cria um cliente com CPF aleatório (11 dígitos) e e-mail único."
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Clientes (GET)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200 OK', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Resposta é lista', function () {",
+									"  const data = pm.response.json();",
+									"  pm.expect(Array.isArray(data)).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://8616e0387b58.ngrok-free.app/api/clientes",
+							"protocol": "https",
+							"host": [
+								"8616e0387b58",
+								"ngrok-free",
+								"app"
+							],
+							"path": [
+								"api",
+								"clientes"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Obter Cliente por ID (GET)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200 OK', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"pm.test('ID confere com variável', function () {",
+									"  const json = pm.response.json();",
+									"  pm.expect(json.id).to.eql(Number(pm.collectionVariables.get('clienteId')));",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://8616e0387b58.ngrok-free.app /api/clientes/1",
+							"protocol": "https",
+							"host": [
+								"8616e0387b58",
+								"ngrok-free",
+								"app "
+							],
+							"path": [
+								"api",
+								"clientes",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Atualizar Cliente (PUT)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200 OK', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Nome atualizado', function () {",
+									"  pm.expect(pm.response.json().firstname).to.eql('Erik Atualizado');",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": {{clienteId}},\n  \"cpf\": \"{{cpf_random}}\",\n  \"firstname\": \"Erik Atualizado\",\n  \"email\": \"{{email_random}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/clientes/{{clienteId}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"clientes",
+								"{{clienteId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deletar Cliente (DELETE)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 204 No Content', function () {",
+									"  pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/clientes/{{clienteId}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"clientes",
+								"{{clienteId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "BuscarCpf",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://8616e0387b58.ngrok-free.app/api/clientes/cpf/92451058635",
+							"protocol": "https",
+							"host": [
+								"8616e0387b58",
+								"ngrok-free",
+								"app"
+							],
+							"path": [
+								"api",
+								"clientes",
+								"cpf",
+								"92451058635"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Carros",
+			"item": [
+				{
+					"name": "Criar Carro para Cliente (POST)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201 Created', function () {",
+									"  pm.response.to.have.status(201);",
+									"});",
+									"const json = pm.response.json();",
+									"pm.collectionVariables.set('carroId', json.id);",
+									"pm.test('Resposta contém id do carro', function () {",
+									"  pm.expect(json).to.have.property('id');",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"marca\": \"ford\",\n  \"modelo\": \"golg5\",\n  \"ano\": 2020\n}"
+						},
+						"url": {
+							"raw": "https://8616e0387b58.ngrok-free.app/api/clientes/{{clienteId}}/carros",
+							"protocol": "https",
+							"host": [
+								"8616e0387b58",
+								"ngrok-free",
+								"app"
+							],
+							"path": [
+								"api",
+								"clientes",
+								"{{clienteId}}",
+								"carros"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Carros do Cliente (GET)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200 OK', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Lista de carros', function () {",
+									"  const data = pm.response.json();",
+									"  pm.expect(Array.isArray(data)).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://8616e0387b58.ngrok-free.app/api/clientes/2/carros",
+							"protocol": "https",
+							"host": [
+								"8616e0387b58",
+								"ngrok-free",
+								"app"
+							],
+							"path": [
+								"api",
+								"clientes",
+								"2",
+								"carros"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Obter Carro por ID (GET)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200 OK', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"pm.test('ID do carro confere', function () {",
+									"  pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get('carroId')));",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/clientes/{{clienteId}}/carros",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"clientes",
+								"{{clienteId}}",
+								"carros"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Atualizar Carro (PUT)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200 OK', function () {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Modelo atualizado', function () {",
+									"  pm.expect(pm.response.json().modelo).to.eql('Corolla Altis');",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": {{carroId}},\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Corolla Altis\",\n  \"ano\": 2021\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/clientes/{{clienteId}}/carros/{{carroId}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"clientes",
+								"{{clienteId}}",
+								"carros",
+								"{{carroId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deletar Carro (DELETE)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 204 No Content', function () {",
+									"  pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/clientes/{{clienteId}}/carros/{{carroId}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"clientes",
+								"{{clienteId}}",
+								"carros",
+								"{{carroId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "VeiculoCPF",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://8616e0387b58.ngrok-free.app/api/clientes/cpf/{{cpf}}/carros",
+							"protocol": "https",
+							"host": [
+								"8616e0387b58",
+								"ngrok-free",
+								"app"
+							],
+							"path": [
+								"api",
+								"clientes",
+								"cpf",
+								"{{cpf}}",
+								"carros"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CadastrarCarroCpf",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"marca\": \"toyoto\",\r\n  \"modelo\": \"teste\",\r\n  \"ano\": 2025\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://8616e0387b58.ngrok-free.app/api/clientes/cpf/{{cpf}}/carros",
+							"protocol": "https",
+							"host": [
+								"8616e0387b58",
+								"ngrok-free",
+								"app"
+							],
+							"path": [
+								"api",
+								"clientes",
+								"cpf",
+								"{{cpf}}",
+								"carros"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8090"
+		},
+		{
+			"key": "clienteId",
+			"value": ""
+		},
+		{
+			"key": "carroId",
+			"value": ""
+		},
+		{
+			"key": "cpf_random",
+			"value": ""
+		},
+		{
+			"key": "email_random",
+			"value": ""
+		}
+	]
+}

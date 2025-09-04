@@ -1,16 +1,21 @@
 package com.blip.BlipSeguros.controller;
 
+import com.blip.BlipSeguros.repository.CarroRepository;
+import com.blip.BlipSeguros.model.Carro;
 import com.blip.BlipSeguros.model.Cliente;
 import com.blip.BlipSeguros.repository.ClienteRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +27,7 @@ import java.util.Map;
 public class ClienteController {
 
     private final ClienteRepository repository;
+    private final CarroRepository carroRepository;
 
     @GetMapping
     public List<Cliente> list() {
@@ -49,38 +55,30 @@ public class ClienteController {
     @ResponseStatus(HttpStatus.CREATED)
     public Cliente create(@Valid @RequestBody Cliente body) {
         body.setId(null);
-        body.setCpf(body.getCpf().replaceAll("\\D", "")); // normaliza
+        if (body.getCpf() != null) {
+            body.setCpf(body.getCpf().replaceAll("\\D", "")); // normaliza
+        }
         return repository.save(body);
     }
-
-    @ResponseStatus(HttpStatus.CONFLICT)
-    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
-    public Map<String, String> handleConstraint(org.springframework.dao.DataIntegrityViolationException ex) {
-        String msg = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
-        if (msg != null && msg.toLowerCase().contains("cpf")) {
-            return Map.of("error", "CPF já cadastrado");
-        }
-        return Map.of("error", "Violação de integridade", "detail", msg);
-    }
-
 
     @PutMapping("/{id}")
     public Cliente update(@PathVariable Long id, @Valid @RequestBody Cliente body) {
         Cliente existente = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cliente não encontrado"));
 
+        // Atualiza apenas campos do Cliente (sem dados de carro)
         existente.setFirstname(body.getFirstname());
+        if (body.getEmail() != null) {
+            existente.setEmail(body.getEmail());
+        }
         if (body.getCpf() != null) {
             existente.setCpf(body.getCpf().replaceAll("\\D", ""));
         }
-        existente.setCarro_marca(body.getCarro_marca());
-        existente.setCarro_ano(body.getCarro_ano());
-
 
         try {
             return repository.save(existente);
         } catch (DataIntegrityViolationException e) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "CPF já cadastrado");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "CPF ou e-mail já cadastrado");
         }
     }
 
@@ -93,7 +91,41 @@ public class ClienteController {
         repository.deleteById(id);
     }
 
-    // Tratamento de validações @Valid
+    @GetMapping("/cpf/{cpf}/carros")
+    public List<Carro> getCarrosByCpf(@PathVariable String cpf) {
+        String normalized = cpf.replaceAll("\\D", "");
+        if (normalized.length() != 11) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CPF inválido");
+        }
+
+        Cliente cliente = repository.findByCpf(normalized)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cliente não encontrado"));
+
+        return carroRepository.findByClienteId(cliente.getId());
+
+    }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public Map<String, String> handleConstraint(DataIntegrityViolationException ex) {
+        String msg = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+        Map<String, String> resp = new HashMap<>();
+        resp.put("error", "Violação de integridade");
+        if (msg != null) {
+            String lower = msg.toLowerCase();
+            if (lower.contains("uk_clientes_cpf") || lower.contains("cpf")) {
+                resp.put("detail", "CPF já cadastrado");
+                return resp;
+            }
+            if (lower.contains("uk_clientes_email") || lower.contains("email")) {
+                resp.put("detail", "E-mail já cadastrado");
+                return resp;
+            }
+            resp.put("detail", msg);
+        }
+        return resp;
+    }
+
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Map<String, String> handleValidation(MethodArgumentNotValidException ex) {
@@ -103,4 +135,34 @@ public class ClienteController {
         }
         return errors;
     }
+    @PostMapping("/cpf/{cpf}/carros")
+    public ResponseEntity<Carro> criarCarroPorCpf(
+            @PathVariable String cpf,
+            @Valid @RequestBody Carro body
+    ) {
+        String normalized = cpf.replaceAll("\\D", "");
+        if (normalized.length() != 11) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CPF inválido");
+        }
+
+        Cliente cliente = repository.findByCpf(normalized)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cliente não encontrado"));
+
+        Carro carro = new Carro();
+        carro.setMarca(body.getMarca());
+        carro.setModelo(body.getModelo());
+        carro.setAno(body.getAno());
+        carro.setCliente(cliente);
+
+        Carro salvo = carroRepository.save(carro);
+
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentContextPath()
+                .path("/api/clientes/{clienteId}/carros/{carroId}")
+                .buildAndExpand(cliente.getId(), salvo.getId())
+                .toUri();
+
+        return ResponseEntity.created(location).body(salvo);
+    }
+
 }

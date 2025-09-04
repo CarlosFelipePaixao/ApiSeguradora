@@ -3,7 +3,8 @@ package com.blip.BlipSeguros.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
-import org.hibernate.validator.constraints.br.CPF;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(
@@ -24,7 +25,7 @@ public class Cliente {
     private Long id;
 
     @NotBlank
-    @CPF
+    // ATENÇÃO: mantemos apenas 11 dígitos; sem validar DV
     @Column(nullable = false, unique = true, length = 11)
     private String cpf;
 
@@ -37,19 +38,13 @@ public class Cliente {
     @Column(nullable = false, unique = true, length = 254)
     private String email;
 
-    @NotBlank
-    @Column(nullable = false)
-    private String carro_marca;
-
-    @NotBlank
-    @Column(nullable = false)
-    private String carro_modelo;
-
-    @NotNull
-    @Min(1900)
-    @Max(2100)
-    @Column(nullable = false)
-    private Integer carro_ano;
+    @OneToMany(
+            mappedBy = "cliente",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    @Builder.Default
+    private List<Carro> carros = new ArrayList<>();
 
     /** Normaliza CPF antes de salvar/atualizar: guarda só os dígitos */
     @PrePersist
@@ -58,5 +53,23 @@ public class Cliente {
         if (this.cpf != null) {
             this.cpf = this.cpf.replaceAll("\\D", "");
         }
+    }
+
+    /** Valida que o CPF possui exatamente 11 dígitos (sem validar DV) */
+    @AssertTrue(message = "cpf deve conter exatamente 11 dígitos")
+    private boolean isCpfCom11Digitos() {
+        if (this.cpf == null) return false;
+        String digits = this.cpf.replaceAll("\\D", "");
+        return digits.length() == 11;
+    }
+
+    // Helpers (opcional)
+    public void addCarro(Carro carro) {
+        this.carros.add(carro);
+        carro.setCliente(this);
+    }
+    public void removeCarro(Carro carro) {
+        this.carros.remove(carro);
+        carro.setCliente(null);
     }
 }
