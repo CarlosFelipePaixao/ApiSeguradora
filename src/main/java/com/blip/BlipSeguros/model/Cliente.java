@@ -1,16 +1,18 @@
 package com.blip.BlipSeguros.model;
 
-
-
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.*;
 import lombok.*;
 import org.hibernate.validator.constraints.br.CPF;
 
 @Entity
-@Table(name = "clientes")
+@Table(
+        name = "clientes",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_clientes_cpf", columnNames = "cpf"),
+                @UniqueConstraint(name = "uk_clientes_email", columnNames = "email")
+        }
+)
 @Getter @Setter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,24 +23,40 @@ public class Cliente {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank                    // não pode ser vazio/nulo
-    @CPF                        // valida dígitos e dígito verificador
-    @Column(nullable = false, unique = true, length = 11) // guarda só 11 dígitos
+    @NotBlank
+    @CPF
+    @Column(nullable = false, unique = true, length = 11)
     private String cpf;
-
 
     @NotBlank
     @Column(nullable = false)
-    private String nome;
+    private String firstname;
 
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private Apolice apolice;
+    @NotBlank
+    @Email
+    @Column(nullable = false, unique = true, length = 254)
+    private String email;
 
-
-    @NotNull
+    @NotBlank
     @Column(nullable = false)
-    private String  Veiculo;
-}
+    private String carro_marca;
 
+    @NotBlank
+    @Column(nullable = false)
+    private String carro_modelo;
+
+    @NotNull
+    @Min(1900)
+    @Max(2100)
+    @Column(nullable = false)
+    private Integer carro_ano;
+
+    /** Normaliza CPF antes de salvar/atualizar: guarda só os dígitos */
+    @PrePersist
+    @PreUpdate
+    private void normalizeCpf() {
+        if (this.cpf != null) {
+            this.cpf = this.cpf.replaceAll("\\D", "");
+        }
+    }
+}
